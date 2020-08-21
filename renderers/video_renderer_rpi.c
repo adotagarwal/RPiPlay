@@ -253,9 +253,12 @@ int video_renderer_init_decoder(video_renderer_t *renderer, int rotation) {
     display_region.nSize = sizeof(OMX_CONFIG_DISPLAYREGIONTYPE);
     display_region.nVersion.nVersion = OMX_VERSION;
     display_region.nPortIndex = 90;
-    if (renderer->display_num != 0)
-        display_region.num = renderer->display_num;
     display_region.set = OMX_DISPLAY_SET_FULLSCREEN | OMX_DISPLAY_SET_LAYER;
+    if (renderer->display_num != 0)
+    {
+        display_region.num = renderer->display_num;
+        display_region.set = display_region.set | OMX_DISPLAY_SET_NUM;
+    }
     display_region.fullscreen = OMX_TRUE;
     display_region.layer = LAYER_VIDEO;
 
