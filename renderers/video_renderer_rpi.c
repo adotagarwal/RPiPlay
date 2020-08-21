@@ -45,6 +45,7 @@ struct video_renderer_s {
     logger_t *logger;
     bool low_latency;
     background_mode_t background_mode;
+    int display_num;
 
     uint16_t background_visits;
     DISPMANX_ELEMENT_HANDLE_T background_element;
@@ -80,7 +81,7 @@ void video_renderer_render_background(video_renderer_t *renderer) {
 
     VC_RECT_T dst_rect, src_rect;
 
-    display = vc_dispmanx_display_open(0);
+    display = vc_dispmanx_display_open(renderer->display_num);
 
     resource = vc_dispmanx_resource_create(type, 1 /*width*/, 1 /*height*/, &vc_image_ptr);
 
@@ -91,7 +92,7 @@ void video_renderer_render_background(video_renderer_t *renderer) {
     vc_dispmanx_rect_set(&src_rect, 0, 0, 1 << 16, 1 << 16);
     vc_dispmanx_rect_set(&dst_rect, 0, 0, 0, 0);
 
-    update = vc_dispmanx_update_start(0);
+    update = vc_dispmanx_update_start(renderer->display_num);
 
     renderer->background_element = vc_dispmanx_element_add(update, display, LAYER_BACKGROUND, &dst_rect, resource,
                                                            &src_rect,
@@ -103,7 +104,7 @@ void video_renderer_render_background(video_renderer_t *renderer) {
 
 void video_renderer_remove_background(video_renderer_t *renderer) {
     if (renderer->background_element) {
-        DISPMANX_UPDATE_HANDLE_T update = vc_dispmanx_update_start(0);
+        DISPMANX_UPDATE_HANDLE_T update = vc_dispmanx_update_start(renderer->display_num);
         vc_dispmanx_element_remove(update, renderer->background_element);
         vc_dispmanx_update_submit_sync(update);
     }
@@ -252,6 +253,8 @@ int video_renderer_init_decoder(video_renderer_t *renderer, int rotation) {
     display_region.nSize = sizeof(OMX_CONFIG_DISPLAYREGIONTYPE);
     display_region.nVersion.nVersion = OMX_VERSION;
     display_region.nPortIndex = 90;
+    if (renderer->display_num != 0)
+        display_region.num = renderer->display_num;
     display_region.set = OMX_DISPLAY_SET_FULLSCREEN | OMX_DISPLAY_SET_LAYER;
     display_region.fullscreen = OMX_TRUE;
     display_region.layer = LAYER_VIDEO;
@@ -313,7 +316,7 @@ int video_renderer_init_decoder(video_renderer_t *renderer, int rotation) {
     return 1;
 }
 
-video_renderer_t *video_renderer_init(logger_t *logger, background_mode_t background_mode, bool low_latency, int rotation) {
+video_renderer_t *video_renderer_init(logger_t *logger, background_mode_t background_mode, bool low_latency, int rotation, int display_num) {
     video_renderer_t *renderer;
     renderer = calloc(1, sizeof(video_renderer_t));
     if (!renderer) {
@@ -323,6 +326,7 @@ video_renderer_t *video_renderer_init(logger_t *logger, background_mode_t backgr
     renderer->logger = logger;
     renderer->low_latency = low_latency;
     renderer->background_mode = background_mode;
+    renderer->display_num = display_num;
 
     renderer->first_packet_time = 0;
     renderer->input_frames = 0;
